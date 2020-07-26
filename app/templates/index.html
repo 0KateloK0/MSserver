@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<form id="form">
+		<input type="file" name="file">
+		<input type="text" value="292" name="task_id">
+		<input type="submit">
+	</form>
+	<script type="text/javascript">
+		let form = document.getElementById('form');
+		form.onsubmit = async function (e) {
+			e.preventDefault();
+			let response = await fetch('file', {
+				method: 'POST',
+				body: new FormData(form)
+			});
+			let result = await response.json();
+			console.log(result);
+		}
+	</script>
+</body>
+</html>
