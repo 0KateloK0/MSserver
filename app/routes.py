@@ -1,36 +1,27 @@
 from app import app
-from flask import render_template, request, url_for, send_from_directory
+from flask import render_template, request, make_response
 import json
 import os
 import subprocess
 import random
 
-def get_archive (archive_id):
+def get_archive_function (archive_id):
 	def get_file_from_archive (filename):
 		return open('./app/static/tests/archive_{}/{}'.format(archive_id, filename))
 	return get_file_from_archive
-
-# def get_file_from_archive (archive_id, filename):
-# 	return open('./app/static/tests/archive_{}/{}'.format(archive_id, filename))
-
 
 def get_random_file_name ():
 	return '%04x.exe' % random.getrandbits(16)
 
 def checkApplication (id, file):
-	# old_path = os.getcwd()
-	# os.chdir(os.path.abspath(PATH))
-	
-	get_file = get_archive(id)
-
+	get_file = get_archive_function(id)
 	fname = get_random_file_name()
-	# just to be sure
+	# только для уверенности
 	while os.path.exists(fname):
 		fname = get_random_file_name()
 	file.save(fname)
 
 	show_files = get_file('show_tests.txt').read().split()
-	# show_files = open('show_tests.txt').read().split()
 	result = []
 	for test in os.listdir( './app/static/tests/archive_{}/tests/'.format(id) )[::2]:
 		try:
@@ -39,26 +30,26 @@ def checkApplication (id, file):
 		except ValueError:
 			show = False
 
-		expected = get_file('tests/{}.a'.format(test) ).read().split() #open( 'tests/{}.a'.format(test) )
+		expected = get_file('tests/{}.a'.format(test) ).read().split()
 		obj = {
-			'input': get_file('tests/{}'.format(test) ).read().split(), #open( 'tests/' + test )
+			'input': get_file('tests/{}'.format(test) ).read().split(),
 			'expected': expected,
 			'show': show
 			}
 
 		try:
-			print(fname)
-			process = subprocess.run(fname, stdin=get_file('tests/{}'.format(test)), stdout=subprocess.PIPE, timeout=10) #open( 'tests/' + test)
+			process = subprocess.run(fname, stdin=get_file('tests/{}'.format(test)), stdout=subprocess.PIPE, timeout=2)
 			got = process.stdout.decode().split()
 			obj['got'] = got
 			obj['status'] = 'OK' if got == expected else 'WA'
 		except subprocess.TimeoutExpired:
 			obj['status'] = 'TL'
+		except OSError:
+			obj['status'] = 'ER'
 
 		result.append(obj)
 
 	os.remove(fname)
-	# os.chdir(old_path)
 	return result
 
 @app.route('/', methods=['GET', 'POST'])
@@ -68,4 +59,15 @@ def index ():
 
 @app.route('/file', methods=['GET', 'POST'])
 def file ():
-	return json.dumps(checkApplication(request.form['task_id'], request.files['file']))
+	if request.method == 'POST':
+		file = request.files['file']
+		task_id = request.form['task_id']
+		if not file:
+			return make_response('No file', 400)
+		elif not task_id:
+			return make_response('No task id', 400)
+		else:
+			test_result = checkApplication(task_id, file)
+			return json.dumps(test_result)
+	else:
+		return make_response('Only POST requests are allowed', 400)
