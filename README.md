@@ -5,10 +5,10 @@
 1. Скачать python
 2. Запустить командную строку и перейти в директорию где находится сервер
 3. Запустить последовательно следующие команды:
-	pip install virtualenv
-	virtualenv virt
-	virt\scripts\activate
-	pip install flask waitress
+	1. pip install virtualenv
+	2. virtualenv virt
+	3. virt\scripts\activate
+	4. pip install flask waitress
 
 Тесты для заданий распологать в директорию: app/static/tests/
 
